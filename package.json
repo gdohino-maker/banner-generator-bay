@@ -2,7 +2,6 @@
   "name": "banner-generator",
   "version": "1.0.0",
   "description": "楽天・LINE バナー自動生成 Web ツール（Gemini API）",
-  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

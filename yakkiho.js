@@ -1,7 +1,7 @@
 // 薬機法・景表法 NG表現チェック用 ルール辞書とヘルパー
 // ※機械的な一次スクリーニング。最終可否は薬事専門家・保健所の確認が前提。
 
-export const yakkihoRules = {
+const yakkihoRules = {
   // 全分類共通（楽天市場全体の禁止事項）
   common: {
     banned: [
@@ -44,7 +44,7 @@ function normTxt(s) {
 }
 
 // 画像内テキストを分類ルールと照合し findings を返す
-export function checkYakki(text, klass) {
+function checkYakki(text, klass) {
   const t = normTxt(text);
   if (!t) return [];
   const findings = [];
@@ -76,7 +76,7 @@ export function checkYakki(text, klass) {
 }
 
 // 分類選択時に役割文へ自動付加する予防ガードレール
-export function yakkiPreventionNote(klass) {
+function yakkiPreventionNote(klass) {
   switch (klass) {
     case "quasi_drug":
       return "【薬機法ガード（医薬部外品）】次の表現を使わない：ビフォーアフター／医師・専門家の推薦／臨床・実証データやグラフ／他社比較／『治す・促進・直接働きかける・根本から・発毛』等の医薬品的表現。承認効能（育毛・脱毛の予防・養毛・ハリコシ等）の範囲で表現する。";
@@ -90,3 +90,6 @@ export function yakkiPreventionNote(klass) {
       return "";
   }
 }
+
+
+module.exports = { yakkihoRules, checkYakki, yakkiPreventionNote };

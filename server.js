@@ -1,16 +1,13 @@
-import express from "express";
-import archiver from "archiver";
-import pptxgen from "pptxgenjs";
-import dotenv from "dotenv";
-import path from "node:path";
-import fs from "node:fs";
-import { fileURLToPath } from "node:url";
-import { MALLS, getMall, mallGuidance, extrasGuidance, assignKuroaka, validateTemplate, buildProductPagePrompt } from "./malls.js";
-import { checkYakki, yakkiPreventionNote } from "./yakkiho.js";
+const express = require("express");
+const archiver = require("archiver");
+const pptxgen = require("pptxgenjs");
+const dotenv = require("dotenv");
+const path = require("node:path");
+const fs = require("node:fs");
+const { MALLS, getMall, mallGuidance, extrasGuidance, assignKuroaka, validateTemplate, buildProductPagePrompt } = require("./malls.js");
+const { checkYakki, yakkiPreventionNote } = require("./yakkiho.js");
 
 dotenv.config();
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const API_KEY = process.env.GEMINI_API_KEY;
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-image";
@@ -1021,4 +1018,4 @@ if (process.env.VERCEL !== "1") {
   checkTemplates();
 }
 
-export default app;
+module.exports = app;
