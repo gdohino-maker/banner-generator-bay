@@ -9,7 +9,7 @@ const { checkYakki, yakkiPreventionNote } = require("./yakkiho.js");
 
 dotenv.config();
 
-const API_KEY = process.env.GEMINI_API_KEY;
+const API_KEY = (process.env.GEMINI_API_KEY || "").replace(/﻿/g, "").trim();
 const MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-image";
 // 文字抽出（OCR）用のテキスト/ビジョンモデル。pptx書き出しで使用。
 const TEXT_MODEL = process.env.GEMINI_TEXT_MODEL || "gemini-2.5-flash";
@@ -990,7 +990,16 @@ app.delete("/api/projects/:id", (req, res) => {
 });
 
 app.get("/api/health", (req, res) => {
-  res.json({ ok: true, model: MODEL, hasKey: Boolean(API_KEY) });
+  const rawKey = process.env.GEMINI_API_KEY || "";
+  res.json({
+    ok: true,
+    model: MODEL,
+    hasKey: Boolean(API_KEY),
+    keyLen: API_KEY.length,
+    rawKeyLen: rawKey.length,
+    rawFirstChar: rawKey.charCodeAt(0),
+    cleanFirstChar: API_KEY.charCodeAt(0),
+  });
 });
 
 // 起動時：各モールの商品ページ構成について axis 抜けを警告（advisory）
