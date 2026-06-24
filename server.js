@@ -1,5 +1,4 @@
 import express from "express";
-import sharp from "sharp";
 import archiver from "archiver";
 import pptxgen from "pptxgenjs";
 import dotenv from "dotenv";
@@ -208,11 +207,9 @@ async function generateBanners(product, mallKey, extras, styleImages, styleSpec)
 
   // 1. 主バナーを生成（スタイル見本があれば踏襲）
   const firstRaw = await callGemini({ prompt, aspect: sizes[0].aspect, styleImages, styleSpec });
-  const firstBuf = await sharp(Buffer.from(firstRaw, "base64"))
-    .resize(sizes[0].w, sizes[0].h, { fit: "fill" }).png().toBuffer();
 
   const banners = [
-    { key: sizes[0].key, label: sizes[0].label, size: `${sizes[0].w}x${sizes[0].h}`, aspect: sizes[0].aspect, image: firstBuf.toString("base64") },
+    { key: sizes[0].key, label: sizes[0].label, size: `${sizes[0].w}x${sizes[0].h}`, aspect: sizes[0].aspect, image: firstRaw },
   ];
 
   // 2. 残りのサイズを、主バナーを参照に同一デザインで再構成
@@ -226,8 +223,7 @@ async function generateBanners(product, mallKey, extras, styleImages, styleSpec)
       prompt,
     ].join("\n");
     const raw = await callGemini({ prompt: rePrompt, aspect: s.aspect, referenceImage: firstRaw });
-    const buf = await sharp(Buffer.from(raw, "base64")).resize(s.w, s.h, { fit: "fill" }).png().toBuffer();
-    banners.push({ key: s.key, label: s.label, size: `${s.w}x${s.h}`, aspect: s.aspect, image: buf.toString("base64") });
+    banners.push({ key: s.key, label: s.label, size: `${s.w}x${s.h}`, aspect: s.aspect, image: raw });
   }
 
   return { banners };
