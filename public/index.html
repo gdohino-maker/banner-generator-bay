@@ -1570,10 +1570,35 @@
     pageZipBtn.style.display = pageGenerated.length ? "inline-block" : "none";
   }
 
-  // localStorage ヘルパー
-  const LS_INDEX = "banner_projs_idx";
-  function lsIndex() { try { return JSON.parse(localStorage.getItem(LS_INDEX) || "[]"); } catch(_) { return []; } }
-  function lsSaveIndex(arr) { try { localStorage.setItem(LS_INDEX, JSON.stringify(arr)); } catch(_) {} }
+  // ===== IndexedDB ヘルパー（大容量・画像対応） =====
+  const IDB_NAME = "banner_studio", IDB_VER = 1, IDB_STORE = "projects";
+  function idbOpen() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open(IDB_NAME, IDB_VER);
+      r.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE, { keyPath: "id" });
+      };
+      r.onsuccess = (e) => res(e.target.result);
+      r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbPut(obj) {
+    const db = await idbOpen();
+    return new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, "readwrite"); tx.objectStore(IDB_STORE).put(obj); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  }
+  async function idbAll() {
+    const db = await idbOpen();
+    return new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, "readonly"); const r = tx.objectStore(IDB_STORE).getAll(); r.onsuccess = () => res((r.result || []).sort((a,b) => String(b.savedAt).localeCompare(String(a.savedAt)))); r.onerror = () => rej(r.error); });
+  }
+  async function idbGet(id) {
+    const db = await idbOpen();
+    return new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, "readonly"); const r = tx.objectStore(IDB_STORE).get(id); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  }
+  async function idbDel(id) {
+    const db = await idbOpen();
+    return new Promise((res, rej) => { const tx = db.transaction(IDB_STORE, "readwrite"); tx.objectStore(IDB_STORE).delete(id); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  }
 
   async function pageSaveProject() {
     if (pageGenerated.length === 0) { pageStatus.textContent = "保存する画像がありません（先に生成してください）。"; return; }
@@ -1582,50 +1607,43 @@
     try {
       const id = "proj_" + Date.now();
       const items = pageGenerated.map((g, i) => ({ image: g.data, tag: g.tag || g.role || "", aspect: g.aspect || "", filename: g.filename || String(i + 1).padStart(2, "0") + ".png" }));
-      const proj = { id, name, tab: "page", settings: collectPageSettings(), savedAt: new Date().toISOString(), items };
-      localStorage.setItem("banner_proj_" + id, JSON.stringify(proj));
-      const idx = lsIndex().filter(x => x.id !== id);
-      idx.unshift({ id, name, tab: "page", savedAt: proj.savedAt, count: items.length });
-      lsSaveIndex(idx);
+      await idbPut({ id, name, tab: "page", settings: collectPageSettings(), savedAt: new Date().toISOString(), items });
       pageStatus.textContent = `「${name}」を保存しました（${items.length}枚）。「保存ページを開く」から再編集できます。`;
     } catch (err) {
-      pageStatus.innerHTML = `<span class="err">保存エラー: ${err.message}（画像が多すぎてストレージ容量を超えた可能性があります）</span>`;
+      pageStatus.innerHTML = `<span class="err">保存エラー: ${err.message}</span>`;
     }
   }
 
   const projModal = document.getElementById("projModal");
-  function openProjModal() {
+  async function openProjModal() {
     projModal.style.display = "block";
     const listEl = document.getElementById("projList");
-    const idx = lsIndex();
-    document.getElementById("projDirInfo").textContent = "保存先: ブラウザのローカルストレージ（このデバイス・ブラウザのみ）";
-    if (!idx.length) { listEl.innerHTML = `<p class="muted">保存されたページはまだありません。</p>`; return; }
-    listEl.innerHTML = "";
-    idx.forEach((p) => {
-      const row = document.createElement("div");
-      row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;";
-      const when = (() => { try { return new Date(p.savedAt).toLocaleString(); } catch (_) { return ""; } })();
-      row.innerHTML = `<div><b>${p.name}</b><br><span class="muted" style="font-size:12px;">${p.tab} ・ ${p.count}枚 ・ ${when}</span></div>`;
-      const btns = document.createElement("div");
-      const open = document.createElement("button"); open.className = "action primary"; open.style.cssText = "padding:6px 12px;margin-right:6px;"; open.textContent = "開く";
-      open.onclick = () => loadProject(p.id);
-      const del = document.createElement("button"); del.className = "action ghost"; del.style.cssText = "padding:6px 12px;"; del.textContent = "削除";
-      del.onclick = () => {
-        if (!confirm("このプロジェクトを削除しますか？")) return;
-        localStorage.removeItem("banner_proj_" + p.id);
-        lsSaveIndex(lsIndex().filter(x => x.id !== p.id));
-        openProjModal();
-      };
-      btns.appendChild(open); btns.appendChild(del); row.appendChild(btns);
-      listEl.appendChild(row);
-    });
+    listEl.innerHTML = `<span class="muted"><span class="spinner"></span>読込中…</span>`;
+    try {
+      const list = await idbAll();
+      document.getElementById("projDirInfo").textContent = "保存先: ブラウザの IndexedDB（このデバイス・ブラウザのみ）";
+      if (!list.length) { listEl.innerHTML = `<p class="muted">保存されたページはまだありません。</p>`; return; }
+      listEl.innerHTML = "";
+      list.forEach((p) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;";
+        const when = (() => { try { return new Date(p.savedAt).toLocaleString(); } catch (_) { return ""; } })();
+        row.innerHTML = `<div><b>${p.name}</b><br><span class="muted" style="font-size:12px;">${p.tab} ・ ${(p.items||[]).length}枚 ・ ${when}</span></div>`;
+        const btns = document.createElement("div");
+        const open = document.createElement("button"); open.className = "action primary"; open.style.cssText = "padding:6px 12px;margin-right:6px;"; open.textContent = "開く";
+        open.onclick = () => loadProject(p.id);
+        const del = document.createElement("button"); del.className = "action ghost"; del.style.cssText = "padding:6px 12px;"; del.textContent = "削除";
+        del.onclick = async () => { if (!confirm("このプロジェクトを削除しますか？")) return; await idbDel(p.id); openProjModal(); };
+        btns.appendChild(open); btns.appendChild(del); row.appendChild(btns);
+        listEl.appendChild(row);
+      });
+    } catch (err) { listEl.innerHTML = `<span class="err">読込エラー: ${err.message}</span>`; }
   }
 
-  function loadProject(id) {
+  async function loadProject(id) {
     try {
-      const raw = localStorage.getItem("banner_proj_" + id);
-      if (!raw) throw new Error("プロジェクトが見つかりません。");
-      const data = JSON.parse(raw);
+      const data = await idbGet(id);
+      if (!data) throw new Error("プロジェクトが見つかりません。");
       document.querySelector('.tab[data-tab="page"]').click();
       applyPageSettings(data.settings);
       renderRestoredPage(data.items || []);
