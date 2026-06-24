@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>バナー・画像 自動生成ツール | AI Banner Studio</title>
+<style>
+  :root {
+    /* ライトグリーンパレット */
+    --bg: #edf7f0;
+    --bg2: #e0f2e9;
+    --card: rgba(255,255,255,0.92);
+    --card-solid: #ffffff;
+    --line: #b7e0c4;
+    --line2: #8ecba3;
+    --text: #133d22;
+    --muted: #4e7a5e;
+    --accent: #1a9c47;
+    --accent-dark: #137a38;
+    --accent-light: #4ade80;
+    --accent2: #06c755;
+    --accent-danger: #dc2626;
+    --radius: 16px;
+    --radius-sm: 10px;
+    /* 3D shadow system */
+    --shadow-xs: 0 1px 3px rgba(0,40,15,0.07), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-sm: 0 2px 10px rgba(0,40,15,0.09), 0 1px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 8px 28px rgba(0,40,15,0.1), 0 3px 10px rgba(0,0,0,0.07);
+    --shadow-lg: 0 18px 48px rgba(0,40,15,0.13), 0 6px 18px rgba(0,0,0,0.08);
+    --shadow-green: 0 4px 20px rgba(26,156,71,0.38), 0 2px 8px rgba(26,156,71,0.22);
+    /* 3D button depth */
+    --btn-raised: 0 4px 14px rgba(0,0,0,0.16), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.22);
+    --btn-pressed: 0 1px 4px rgba(0,0,0,0.12), inset 0 2px 6px rgba(0,0,0,0.18);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(26,156,71,0.08) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(6,199,85,0.06) 0%, transparent 50%);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ===== ヘッダー（グラスモーフィズム） ===== */
+  header {
+    background: linear-gradient(135deg, rgba(26,156,71,0.95) 0%, rgba(19,122,56,0.97) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.18);
+    padding: 20px 28px;
+    box-shadow: 0 4px 24px rgba(0,60,20,0.22), 0 1px 0 rgba(255,255,255,0.08) inset;
+    position: sticky; top: 0; z-index: 100;
+  }
+  header h1 { margin: 0; font-size: 19px; font-weight: 700; color: #fff; letter-spacing: .03em; }
+  header p { margin: 4px 0 0; color: rgba(255,255,255,0.78); font-size: 12.5px; }
+
+  .wrap { max-width: 940px; margin: 0 auto; padding: 28px 24px; }
+
+  /* ===== タブ（3D ピル） ===== */
+  .tabs {
+    display: flex; gap: 8px; margin-bottom: 24px;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px;
+    box-shadow: var(--shadow-sm);
+    width: fit-content;
+  }
+  .tab {
+    padding: 9px 22px;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all .18s ease;
+    outline: none;
+  }
+  .tab:hover { color: var(--accent); background: rgba(26,156,71,0.08); }
+  .tab.active {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #fff;
+    box-shadow: var(--shadow-green);
+    transform: translateY(-1px);
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ===== カード（グラスモーフィズム） ===== */
+  .product, .freebox {
+    background: var(--card);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(183,224,196,0.7);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .2s ease, transform .2s ease;
+  }
+  .product:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .product h3 { margin: 0 0 16px; font-size: 14px; font-weight: 700; color: var(--muted); letter-spacing:.04em; text-transform: uppercase; }
+
+  /* ===== グリッド / フィールド ===== */
+  .grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field.full { grid-column: 1 / -1; }
+  select { width: 100%; max-width: 100%; text-overflow: ellipsis; }
+  .field input { max-width: 100%; }
+  label { font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .03em; }
+
+  input, select, textarea {
+    padding: 9px 12px;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background: rgba(255,255,255,0.85);
+    color: var(--text);
+    transition: border-color .15s, box-shadow .15s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) inset;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,156,71,0.18), 0 1px 3px rgba(0,0,0,0.05) inset;
+    background: #fff;
+  }
+
+  /* ===== 削除ボタン ===== */
+  .remove {
+    position: absolute; top: 14px; right: 14px;
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 18px; line-height: 1;
+    transition: color .15s, transform .15s;
+    padding: 4px;
+    border-radius: 50%;
+  }
+  .remove:hover { color: var(--accent-danger); transform: scale(1.2); }
+
+  /* ===== ボタン（3D タッチ） ===== */
+  .btns { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 26px; }
+  button.action {
+    padding: 11px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .14s ease;
+    position: relative;
+    letter-spacing: .03em;
+  }
+  button.action:active { transform: translateY(2px); }
+
+  .ghost {
+    background: rgba(255,255,255,0.9);
+    border: 1.5px solid var(--line) !important;
+    color: var(--text);
+    box-shadow: var(--btn-raised);
+  }
+  .ghost:hover {
+    background: #fff;
+    border-color: var(--accent) !important;
+    color: var(--accent);
+    box-shadow: 0 4px 16px rgba(26,156,71,0.18), 0 2px 4px rgba(0,0,0,0.08);
+  }
+  .ghost:active { box-shadow: var(--btn-pressed); }
+
+  .primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #fff;
+    box-shadow: var(--shadow-green), var(--btn-raised);
+  }
+  .primary:hover {
+    background: linear-gradient(135deg, #22b554 0%, var(--accent) 100%);
+    box-shadow: 0 6px 24px rgba(26,156,71,0.45), 0 2px 6px rgba(0,0,0,0.12);
+    transform: translateY(-1px);
+  }
+  .primary:active { box-shadow: var(--btn-pressed); transform: translateY(2px); }
+  .primary:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .zip {
+    background: linear-gradient(135deg, #1b3028 0%, #0f2018 100%);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.28), var(--btn-raised);
+  }
+  .zip:hover {
+    background: linear-gradient(135deg, #264035 0%, #1b3028 100%);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+  }
+  .zip:active { box-shadow: var(--btn-pressed); transform: translateY(2px); }
+
+  /* ===== サムネイル ===== */
+  .thumbs { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .thumb {
+    position: relative; width: 92px; height: 92px; border-radius: var(--radius-sm);
+    overflow: hidden; border: 1.5px solid var(--line); background: #f0faf4;
+    box-shadow: var(--shadow-xs);
+    transition: transform .15s, box-shadow .15s;
+  }
+  .thumb:hover { transform: scale(1.04); box-shadow: var(--shadow-sm); }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb button {
+    position: absolute; top: 3px; right: 3px; width: 20px; height: 20px;
+    border: none; border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff;
+    cursor: pointer; font-size: 13px; line-height: 1; transition: background .12s;
+  }
+  .thumb button:hover { background: rgba(220,38,38,0.85); }
+
+  /* ===== ドロップゾーン ===== */
+  .drop {
+    border: 2px dashed var(--line2);
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all .15s;
+    background: rgba(26,156,71,0.03);
+  }
+  .drop:hover {
+    background: rgba(26,156,71,0.07);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ===== 結果カード ===== */
+  .results { display: flex; flex-direction: column; gap: 20px; }
+  .result-card {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(183,224,196,0.65);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow-md);
+    animation: fadeInUp .3s ease;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .result-card h3 { margin: 0 0 16px; font-size: 15px; font-weight: 700; color: var(--text); }
+  .banner-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .grid, .banner-row { grid-template-columns: 1fr; } }
+
+  /* ===== バナーカード ===== */
+  .banner {
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #fff;
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow .2s, transform .2s;
+  }
+  .banner:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .banner .tag {
+    padding: 7px 12px; font-size: 11.5px; font-weight: 700; color: #fff;
+    letter-spacing: .04em;
+  }
+  .banner.rk .tag { background: linear-gradient(90deg, #c8102e, #a00d24); }
+  .banner.ln .tag { background: linear-gradient(90deg, #06c755, #05a847); }
+  .banner.fr .tag { background: linear-gradient(90deg, var(--accent), var(--accent-dark)); }
+  .banner img { width: 100%; display: block; background: #f0faf4; }
+  .banner .foot {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px; font-size: 12px; color: var(--muted);
+    border-top: 1px solid var(--line);
+  }
+  .banner .foot a {
+    color: var(--accent); text-decoration: none; font-weight: 700;
+    border: 1.5px solid var(--accent); padding: 4px 12px; border-radius: 6px;
+    transition: all .14s;
+    font-size: 12px;
+  }
+  .banner .foot a:hover {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 2px 8px rgba(26,156,71,0.3);
+  }
+
+  /* ===== 修正ツールバー ===== */
+  .banner .tools {
+    display: flex; gap: 6px; padding: 8px 10px 10px; flex-wrap: wrap;
+    background: rgba(240,250,244,0.7);
+    border-top: 1px solid var(--line);
+  }
+  .banner .tools input {
+    flex: 1 1 140px; min-width: 0; padding: 7px 10px; font-size: 12px;
+    border: 1.5px solid var(--line); border-radius: 7px;
+    background: #fff; color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) inset;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .banner .tools input:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(26,156,71,0.15), 0 1px 3px rgba(0,0,0,0.05) inset;
+  }
+  .banner .tools button {
+    padding: 7px 11px; font-size: 11.5px; font-weight: 700;
+    border: 1.5px solid var(--line);
+    border-radius: 7px; background: rgba(255,255,255,0.9); cursor: pointer; color: var(--text);
+    transition: all .13s; white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .banner .tools button:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(26,156,71,0.15);
+  }
+  .banner .tools button:active { transform: translateY(1px); box-shadow: none; }
+  .banner .tools button.refine-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #fff; border-color: transparent;
+    box-shadow: 0 2px 10px rgba(26,156,71,0.35);
+  }
+  .banner .tools button.refine-btn:hover {
+    background: linear-gradient(135deg, #22b554, var(--accent));
+    box-shadow: 0 4px 14px rgba(26,156,71,0.45);
+  }
+  .banner .tools button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .banner .tools button.check-btn {
+    background: linear-gradient(135deg, #1b3028, #0f2018);
+    color: #fff; border-color: transparent;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .banner .tools button.check-btn:hover {
+    background: linear-gradient(135deg, #264035, #1b3028);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  /* ===== チェック結果 ===== */
+  .banner .check-result { padding: 0 12px 12px; font-size: 12px; }
+  .check-result .ok-badge {
+    color: #0a7d28; font-weight: 700;
+    display: inline-block; background: rgba(10,125,40,0.1); padding: 2px 8px; border-radius: 5px;
+  }
+  .check-result .warn-badge {
+    color: #b45309; font-weight: 700;
+    display: inline-block; background: rgba(180,83,9,0.1); padding: 2px 8px; border-radius: 5px;
+  }
+  .check-result ul { margin: 6px 0 0; padding-left: 18px; }
+  .check-result li { margin: 3px 0; color: var(--text); word-break: break-all; }
+  .check-result .muted { color: var(--muted); }
+
+  /* ===== ステータス / エラー ===== */
+  .err { color: #dc2626; font-size: 13px; word-break: break-all; }
+  .status {
+    font-size: 13.5px; color: var(--muted); margin: 8px 0 20px; min-height: 20px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; margin-right: 4px;
+    border: 2.5px solid rgba(26,156,71,0.25); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== モーダル ===== */
+  #projModal > div {
+    box-shadow: var(--shadow-lg) !important;
+    border: 1px solid var(--line) !important;
+  }
+
+  /* ===== 保存ページ入力 ===== */
+  #pageProjName {
+    background: rgba(255,255,255,0.88);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  #pageProjName:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(26,156,71,0.18);
+  }
+
+  /* ===== スクロールバー ===== */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Banner Studio — バナー・商品ページ 画像生成ツール</h1>
+  <p>セールバナー・自由生成・商品ページ画像を、4大ECモール（Amazon / 楽天 / Yahoo! / Qoo10）の規約・トーンに合わせて自動生成します。</p>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab active" data-tab="banner">セールバナー</button>
+    <button class="tab" data-tab="free">自由生成（画像＋テキスト）</button>
+    <button class="tab" data-tab="page">商品ページ</button>
+  </div>
+
+  <!-- ===== セールバナー モード ===== -->
+  <div class="panel active" id="panel-banner">
+    <div class="grid" style="margin-bottom:12px;">
+      <div class="field">
+        <label>ベースフォーマット（モール）</label>
+        <select id="bannerMall"></select>
+      </div>
+      <div class="field">
+        <label>デザインテイスト</label>
+        <select id="bannerTaste"></select>
+      </div>
+      <div class="field">
+        <label>ターゲット年齢層</label>
+        <select id="bannerTarget"></select>
+      </div>
+      <div class="field">
+        <label>商品ジャンル</label>
+        <select id="bannerGenre"></select>
+      </div>
+      <div class="field">
+        <label>薬機法分類</label>
+        <select id="bannerYakki"></select>
+      </div>
+    </div>
+    <div class="field full" style="margin-bottom:12px;">
+      <label>訴求軸（選ぶとおすすめテイストをサジェスト）</label>
+      <select id="bannerAppeal" style="max-width:360px;"></select>
+      <div id="bannerTasteHint" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>備考・詳細指示（任意）</label>
+      <textarea id="bannerNotes" style="min-height:56px;" placeholder="例: 添付のモデルを使って / 夜のテイストで / 高級感を強めに"></textarea>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>確定スペック（数値チェック用・任意）— 1行＝「ラベル：値」</label>
+      <textarea id="bannerSpecs" style="min-height:56px;" placeholder="例:&#10;Bluetooth：5.3&#10;本体重量：470g&#10;型番：BM-35"></textarea>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>スタイル見本画像（任意・複数可）— このテイスト/雰囲気を踏襲</label>
+      <div class="drop" id="bannerStyleDrop">ここをクリック、または画像をドラッグ＆ドロップして追加</div>
+      <input type="file" id="bannerStyleFile" accept="image/*" multiple style="display:none;" />
+      <div class="thumbs" id="bannerStyleThumbs"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button type="button" class="action ghost" id="bannerStyleAnalyze" style="padding:7px 12px;font-size:13px;">スタイル仕様を解析</button>
+        <span class="status" id="bannerStyleStatus" style="margin:0;"></span>
+      </div>
+      <textarea id="bannerStyleSpec" style="min-height:80px;margin-top:8px;" placeholder="「解析」を押すと、見本の配色・フォント・装飾などの仕様がここに表示されます。手で編集も可能。空欄なら生成時に自動解析します。"></textarea>
+    </div>
+    <div id="products"></div>
+    <div class="btns">
+      <button class="action ghost" id="addBtn">＋ 商品を追加</button>
+      <button class="action primary" id="genBtn">バナーを生成</button>
+      <button class="action zip" id="zipBtn" style="display:none;">一括 Zip ダウンロード</button>
+    </div>
+    <div class="status" id="status"></div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <!-- ===== 自由生成 モード ===== -->
+  <div class="panel" id="panel-free">
+    <p style="color:var(--muted);font-size:13px;margin:0 0 14px;">
+      指示テキストと参考画像（任意・複数可）を1項目ずつ設定し、いくつでも追加してまとめて生成できます。各項目につき画像を1枚生成します。
+    </p>
+    <div class="grid" style="margin-bottom:12px;">
+      <div class="field">
+        <label>ベースフォーマット（モール）</label>
+        <select id="freeMall"></select>
+      </div>
+      <div class="field">
+        <label>デザインテイスト</label>
+        <select id="freeTaste"></select>
+      </div>
+      <div class="field">
+        <label>ターゲット年齢層</label>
+        <select id="freeTarget"></select>
+      </div>
+      <div class="field">
+        <label>商品ジャンル</label>
+        <select id="freeGenre"></select>
+      </div>
+      <div class="field">
+        <label>薬機法分類</label>
+        <select id="freeYakki"></select>
+      </div>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>備考・詳細指示（任意・全項目に適用）</label>
+      <textarea id="freeNotes" style="min-height:56px;" placeholder="例: 添付のモデルを使って / 夜のテイストで / 韓国風に"></textarea>
+    </div>
+    <div class="field full" style="margin-bottom:12px;">
+      <label>訴求軸（選ぶとおすすめテイストをサジェスト）</label>
+      <select id="freeAppeal" style="max-width:360px;"></select>
+      <div id="freeTasteHint" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>確定スペック（数値チェック用・任意）— 1行＝「ラベル：値」</label>
+      <textarea id="freeSpecs" style="min-height:56px;" placeholder="例:&#10;Bluetooth：5.3&#10;本体重量：470g&#10;型番：BM-35"></textarea>
+    </div>
+    <div class="field full" style="margin-bottom:14px;">
+      <label>スタイル見本画像（任意・複数可・全項目に適用）— このテイスト/雰囲気を踏襲</label>
+      <div class="drop" id="freeStyleDrop">ここをクリック、または画像をドラッグ＆ドロップして追加</div>
+      <input type="file" id="freeStyleFile" accept="image/*" multiple style="display:none;" />
+      <div class="thumbs" id="freeStyleThumbs"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+        <button type="button" class="action ghost" id="freeStyleAnalyze" style="padding:7px 12px;font-size:13px;">スタイル仕様を解析</button>
+        <span class="status" id="freeStyleStatus" style="margin:0;"></span>
+      </div>
+      <textarea id="freeStyleSpec" style="min-height:80px;margin-top:8px;" placeholder="「解析」を押すと、見本の配色・フォント・装飾などの仕様がここに表示されます。手で編集も可能。空欄なら生成時に自動解析します。"></textarea>
+    </div>
+    <div id="freeItems"></div>
+    <div class="btns">
+      <button class="action ghost" id="freeAddBtn">＋ 項目を追加</button>
+      <button class="action primary" id="freeGenBtn">画像を生成</button>
+      <button class="action zip" id="freeZipBtn" style="display:none;">一括 Zip ダウンロード</button>
+    </div>
+    <div class="status" id="freeStatus"></div>
+    <div class="results" id="freeResults"></div>
+  </div>
+
+  <!-- ===== 商品ページ モード ===== -->
+  <div class="panel" id="panel-page">
+    <p style="color:var(--muted);font-size:13px;margin:0 0 14px;">
+      モールを選び、商品の特徴と商品画像を入れると、そのモールの推奨構成（規約・ストーリー）に沿って商品ページ画像を自動で複数枚生成します。生成枚数はモール推奨に応じて自動で決まります。
+    </p>
+    <div class="freebox">
+      <div class="grid">
+        <div class="field">
+          <label>モール（必須）</label>
+          <select id="pageMall"></select>
+        </div>
+        <div class="field full" id="pageTemplateField" style="display:none;">
+          <label>ページ構成</label>
+          <select id="pageTemplate"></select>
+        </div>
+        <div class="field">
+          <label>デザインテイスト</label>
+          <select id="pageTaste"></select>
+        </div>
+        <div class="field">
+          <label>ターゲット年齢層</label>
+          <select id="pageTarget"></select>
+        </div>
+        <div class="field">
+          <label>商品ジャンル</label>
+          <select id="pageGenre"></select>
+        </div>
+        <div class="field">
+          <label>薬機法分類</label>
+          <select id="pageYakki"></select>
+        </div>
+        <div class="field">
+          <label>生成枚数</label>
+          <input id="pageCountInfo" type="text" value="モール選択で自動決定" readonly style="background:#f3f4f6;color:var(--muted);" />
+        </div>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>訴求軸（選ぶとおすすめテイストをサジェスト）</label>
+        <select id="pageAppeal" style="max-width:360px;"></select>
+        <div id="pageTasteHint" style="font-size:12px;color:var(--muted);margin-top:4px;"></div>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>商品の特徴・訴求ポイント</label>
+        <textarea id="pageFeatures" placeholder="例: 北海道産の天然ほたて1kg。冷凍。刺身でも加熱でもOK。大粒2L〜3Lサイズ。化粧箱入りでギフトにも。創業60年の専門店。"></textarea>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>備考・詳細指示（任意）</label>
+        <textarea id="pageNotes" style="min-height:56px;" placeholder="例: 添付のモデルを使って / 夜のテイストで / 高級感を強めに"></textarea>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>確定スペック（数値チェック用・任意）— 1行＝「ラベル：値」</label>
+        <textarea id="pageSpecs" style="min-height:56px;" placeholder="例:&#10;マイク数：8&#10;Bluetooth：5.3&#10;本体重量：470g&#10;型番：BM-35"></textarea>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>商品画像（任意・複数可）— 実物写真など</label>
+        <div class="drop" id="pageDrop">ここをクリック、または画像をドラッグ＆ドロップして追加</div>
+        <input type="file" id="pageFile" accept="image/*" multiple style="display:none;" />
+        <div class="thumbs" id="pageThumbs"></div>
+      </div>
+      <div class="field full" style="margin-top:14px;">
+        <label>スタイル見本画像（任意・複数可）— このテイスト/雰囲気を踏襲</label>
+        <div class="drop" id="pageStyleDrop">ここをクリック、または画像をドラッグ＆ドロップして追加</div>
+        <input type="file" id="pageStyleFile" accept="image/*" multiple style="display:none;" />
+        <div class="thumbs" id="pageStyleThumbs"></div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;">
+          <button type="button" class="action ghost" id="pageStyleAnalyze" style="padding:7px 12px;font-size:13px;">スタイル仕様を解析</button>
+          <span class="status" id="pageStyleStatus" style="margin:0;"></span>
+        </div>
+        <textarea id="pageStyleSpec" style="min-height:80px;margin-top:8px;" placeholder="「解析」を押すと、見本の配色・フォント・装飾などの仕様がここに表示されます。手で編集も可能。空欄なら生成時に自動解析します。"></textarea>
+      </div>
+    </div>
+    <div class="btns">
+      <button class="action primary" id="pageGenBtn">商品ページ画像を生成</button>
+      <button class="action zip" id="pageZipBtn" style="display:none;">一括 Zip ダウンロード</button>
+      <input id="pageProjName" placeholder="保存名（例: ほたて_下書き）" style="padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;max-width:200px;" />
+      <button class="action ghost" id="pageSaveBtn">このページを保存</button>
+      <button class="action ghost" id="pageOpenBtn">保存ページを開く</button>
+    </div>
+    <div class="status" id="pageStatus"></div>
+    <div class="results" id="pageResults"></div>
+  </div>
+</div>
+
+<!-- 保存プロジェクト一覧モーダル -->
+<div id="projModal" style="display:none;position:fixed;inset:0;background:rgba(0,30,10,.5);backdrop-filter:blur(4px);z-index:50;">
+  <div style="max-width:680px;margin:6vh auto;background:rgba(255,255,255,0.97);border-radius:18px;padding:24px;max-height:80vh;overflow:auto;box-shadow:0 24px 64px rgba(0,40,15,0.25),0 8px 24px rgba(0,0,0,0.12);border:1.5px solid #b7e0c4;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <h3 style="margin:0;font-size:16px;">保存したページを開く</h3>
+      <button id="projClose" class="action ghost" style="padding:6px 12px;">閉じる</button>
+    </div>
+    <p id="projDirInfo" style="color:var(--muted);font-size:12px;margin:0 0 12px;"></p>
+    <div id="projList"></div>
+  </div>
+</div>
+
+<script>
+  // ===== タブ切替 =====
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      document.getElementById("panel-" + t.dataset.tab).classList.add("active");
+    });
+  });
+
+  function dataUrl(b64, mime) { return `data:${mime || "image/png"};base64,${b64}`; }
+  function downloadLink(b64, filename, text, mime) {
+    return `<a href="${dataUrl(b64, mime)}" download="${filename}">${text}</a>`;
+  }
+
+  // 確定スペック テキスト（1行＝「ラベル：値」）を配列にパース
+  function parseTruthSpecs(text) {
+    return String(text || "")
+      .split(/\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .map((l) => {
+        const idx = l.search(/[:：]/);
+        if (idx >= 0) return { label: l.slice(0, idx).trim(), value: l.slice(idx + 1).trim() };
+        return { label: "", value: l };
+      })
+      .filter((s) => s.value);
+  }
+
+  // 1枚分の画像カード（プレビュー＋DL＋③修正＋④pptx/SVG書き出し＋数値チェック）を生成。
+  // slot[imageKey] を現在の画像base64として読み書きする（修正で差し替え＝Zipにも反映）。
+  function makeImageCard(slot, { imageKey = "image", tag, aspect, filename, texts, title, getTruthSpecs, getYakkiClass, getCheckContext }) {
+    const el = document.createElement("div");
+    el.className = "banner fr";
+    el.innerHTML = `
+      <div class="tag">${tag}</div>
+      <img alt="${tag}" />
+      <div class="foot"><span>${aspect || ""}</span><a class="dl">ダウンロード</a></div>
+      <div class="tools">
+        <input class="refine-in" placeholder="修正指示（例: 背景を夜に / 文字を大きく）" />
+        <button class="refine-btn">修正</button>
+        <button class="undo-btn" disabled title="直前の修正に戻す">↩ 戻る</button>
+        <button class="check-btn">数値チェック</button>
+        <button class="svg-btn">編集SVG</button>
+        <button class="pptx-btn">編集pptx</button>
+      </div>
+      <div class="check-result" style="display:none;"></div>`;
+    const img = el.querySelector("img");
+    const dl = el.querySelector(".dl");
+    const refIn = el.querySelector(".refine-in");
+    const refBtn = el.querySelector(".refine-btn");
+    const undoBtn = el.querySelector(".undo-btn");
+    const checkBtn = el.querySelector(".check-btn");
+    const checkResult = el.querySelector(".check-result");
+    const svgBtn = el.querySelector(".svg-btn");
+    const pptxBtn = el.querySelector(".pptx-btn");
+    let lastChecked = null;
+    const history = []; // 修正前の画像を積む（戻る用）
+
+    function sync() {
+      img.src = dataUrl(slot[imageKey]);
+      dl.href = dataUrl(slot[imageKey]);
+      dl.download = filename;
+    }
+    sync();
+
+    refBtn.addEventListener("click", async () => {
+      const instruction = refIn.value.trim();
+      if (!instruction) { refIn.focus(); return; }
+      refBtn.disabled = true; pptxBtn.disabled = true;
+      const old = refBtn.textContent; refBtn.textContent = "修正中…";
+      try {
+        const res = await fetch("/api/refine", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: slot[imageKey], instruction, aspect }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "修正に失敗しました。");
+        history.push(slot[imageKey]); // 修正前を履歴に積む
+        undoBtn.disabled = false;
+        slot[imageKey] = data.image;
+        sync(); refIn.value = "";
+        lastChecked = null; checkResult.style.display = "none"; // 画像が変わったので再チェック対象に
+      } catch (err) {
+        alert("修正エラー: " + err.message);
+      } finally { refBtn.disabled = false; pptxBtn.disabled = false; refBtn.textContent = old; }
+    });
+
+    undoBtn.addEventListener("click", () => {
+      if (!history.length) return;
+      slot[imageKey] = history.pop();
+      sync();
+      undoBtn.disabled = history.length === 0;
+      lastChecked = null; checkResult.style.display = "none"; // 戻したので再チェック対象に
+    });
+
+    checkBtn.addEventListener("click", async () => {
+      const cur = slot[imageKey];
+      if (lastChecked === cur && checkResult.style.display !== "none") return; // 変更なしなら再実行しない
+      const specs = getTruthSpecs ? getTruthSpecs() : [];
+      const yakkiClass = getYakkiClass ? getYakkiClass() : "";
+      const ctx = getCheckContext ? getCheckContext() : {};
+      checkBtn.disabled = true; const o = checkBtn.textContent; checkBtn.textContent = "確認中…";
+      checkResult.style.display = "block";
+      checkResult.innerHTML = `<span class="muted"><span class="spinner"></span>画像内の数値・表現・内容を確認中…</span>`;
+      try {
+        const res = await fetch("/api/check-numbers", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: cur, truthSpecs: specs, yakkiClass, genreLabel: ctx.genreLabel || "", productName: ctx.productName || "" }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "チェックに失敗しました。");
+        let html = "";
+        // 数値突合
+        if (data.status === "error") html += `<div class="muted">数値: チェック不可（抽出できませんでした）</div>`;
+        else if (data.status === "ok") html += `<div class="ok-badge">✓ 数値: 不一致は検出なし</div>`;
+        else html += `<div class="warn-badge">⚠ 数値 要確認 ${data.findings.length}件</div><ul>${(data.findings || []).map((f) => `<li>${f.message}</li>`).join("")}</ul>`;
+        // 薬機法
+        const y = data.yakki || { status: "none", findings: [] };
+        if (y.status === "warn") {
+          html += `<div class="warn-badge">⚠ 薬機法 要確認 ${y.findings.length}件</div><ul>${y.findings.map((f) => `<li>[${f.category}]「${f.term}」 ${f.reason}${f.alt ? `<br>→ OK代替候補: ${f.alt}` : ""}</li>`).join("")}</ul>`;
+        } else if (y.status === "ok") {
+          html += `<div class="ok-badge">✓ 薬機法: NG表現は検出なし</div>`;
+        } else if (y.status === "error") {
+          html += `<div class="muted">薬機法: チェック不可</div>`;
+        }
+        // 内容妥当性（無関係被写体・意味不明テキスト）
+        const ct = data.content || { status: "none", irrelevant: [], garbled: [] };
+        if (ct.status === "warn") {
+          const items = [
+            ...(ct.irrelevant || []).map((s) => `<li>[無関係被写体] ${s} <b>（再生成推奨）</b></li>`),
+            ...(ct.garbled || []).map((s) => `<li>[意味不明テキスト] ${s} <b>（再生成推奨）</b></li>`),
+          ].join("");
+          html += `<div class="warn-badge">⚠ 内容妥当性 要確認 ${(ct.irrelevant || []).length + (ct.garbled || []).length}件</div><ul>${items}</ul>`;
+        } else if (ct.status === "ok") {
+          html += `<div class="ok-badge">✓ 内容: 無関係被写体・意味不明テキストの検出なし</div>`;
+        }
+        html += `<div class="muted" style="margin-top:6px;">※機械的な一次スクリーニングです。最終可否は人／薬事専門家・保健所にご確認ください（「薬機法OK」と「楽天プロモ配信OK」は別物）。</div>`;
+        checkResult.innerHTML = html;
+        lastChecked = cur;
+      } catch (err) {
+        checkResult.innerHTML = `<span class="err">チェックエラー: ${err.message}</span>`;
+      } finally { checkBtn.disabled = false; checkBtn.textContent = o; }
+    });
+
+    pptxBtn.addEventListener("click", async () => {
+      pptxBtn.disabled = true; const old = pptxBtn.textContent; pptxBtn.textContent = "作成中…";
+      try {
+        const res = await fetch("/api/export-pptx", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: (filename || "editable").replace(/\.png$/, ""), items: [{ image: slot[imageKey], aspect, texts: texts || [] }] }),
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "書き出しに失敗しました。"); }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = (filename || "editable").replace(/\.png$/, "") + ".pptx"; a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("pptx書き出しエラー: " + err.message);
+      } finally { pptxBtn.disabled = false; pptxBtn.textContent = old; }
+    });
+
+    svgBtn.addEventListener("click", async () => {
+      svgBtn.disabled = true; const old = svgBtn.textContent; svgBtn.textContent = "作成中…";
+      try {
+        const res = await fetch("/api/export-svg", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: (filename || "editable").replace(/\.png$/, ""), image: slot[imageKey], aspect }),
+        });
+        if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || "書き出しに失敗しました。"); }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = (filename || "editable").replace(/\.png$/, "") + ".svg"; a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert("SVG書き出しエラー: " + err.message);
+      } finally { svgBtn.disabled = false; svgBtn.textContent = old; }
+    });
+
+    return el;
+  }
+
+  // ===== モール一覧（セレクト用） =====
+  const MALL_LIST = [
+    { key: "amazon", label: "Amazon", pageCount: 8 },
+    { key: "rakuten", label: "楽天市場", pageCount: 15 },
+    { key: "yahoo", label: "Yahoo!ショッピング", pageCount: 6 },
+    { key: "qoo10", label: "Qoo10", pageCount: 6 },
+  ];
+  function fillMallSelect(el, includeNone) {
+    let html = includeNone ? `<option value="">指定なし（汎用）</option>` : "";
+    MALL_LIST.forEach((m) => { html += `<option value="${m.key}">${m.label}</option>`; });
+    el.innerHTML = html;
+  }
+  fillMallSelect(document.getElementById("bannerMall"), true);
+  fillMallSelect(document.getElementById("freeMall"), true);
+  fillMallSelect(document.getElementById("pageMall"), false);
+
+  // ===== デザインテイスト一覧（用途ベース・棚卸し済み） =====
+  // ※内部キー(key)・定義本体は不変。表示(label/order/hidden/rakutenOnly/desc)のみ整理。
+  const TASTE_LIST = [
+    { key: "white_luxury",  order:  1, label: "ヘルスケア・美容・サプリ（清潔×信頼）",          desc: "清潔感×科学的信頼。KPI数値・認証・受賞で確かさを。健康・美容で迷ったらコレ。" },
+    { key: "natural",       order:  2, label: "自然派・オーガニック（情緒・女性向け）",          desc: "柔らかい自然光と余白で心地よさ・体験を。女性向け・情緒訴求。" },
+    { key: "luxury",        order:  3, label: "高級ギフト（引き算・上質）",                      desc: "文字少なめ・引き算。価格でなく価値を静かに語る。贈答・高単価に。" },
+    { key: "wafu_food",     order:  4, label: "和の高級食品・産直グルメ（職人・シズル）",        desc: "シズル（照り・湯気）と職人の物語で上質を。和の食材・老舗に。" },
+    { key: "wamodern",      order:  5, label: "家族の食卓・温かい食品（和モダン）",              desc: "温かい食卓・三世代の和モダン。家族の健康習慣に。役割ごと自動使い分け。" },
+    { key: "premium",       order:  6, label: "ガジェット・ビジネス（機能美）",                  desc: "クリーンな機能美と認証で信頼を。家電・ビジネス用品に。" },
+    { key: "logical",       order:  7, label: "スタイリッシュ＆ロジカル（男性向け・機能美）",    desc: "黒/ネイビー+サンセリフ。スペック・数値・実用性を論理的に訴求。ガジェット・メンズコスメに。" },
+    { key: "impact",        order:  8, label: "インパクト＆大文字（メガモール・賑わい）",         desc: "超極太ゴシック+赤×黄。小さなスマホでも一目で伝わる視認性重視。サプリ・日用品・訳ありに。" },
+    { key: "k_beauty",      order:  9, label: "K-Beauty・淡色くすみ（韓国コスメ・SNS映え）",    desc: "くすみパステル+細丸ゴシック。コラージュ風・フラットレイ。韓国コスメ・スキンケアに。" },
+    { key: "sns",           order: 10, label: "SNS・トレンド（スマホ特化・若年層）",            desc: "ネオン+コラージュ+手書き矢印。スクロール中でも指が止まるインパクト勝負。バズ雑貨・プチプラに。" },
+    { key: "eco",           order: 11, label: "エコ・サステナブル（自然・グリーン）",            desc: "アースカラー+クラフト紙質感。環境配慮・オーガニック・ビーガン商品の世界観を体現。" },
+    { key: "kuroaka",       order: 12, rakutenOnly: true, label: "〔楽天専用〕賑わい・権威（黒×赤）", desc: "黒×赤で賑わいと権威。役割ごと自動使い分け。楽天のみ。" },
+  ];
+  const tasteLabelOf = (key) => (TASTE_LIST.find((t) => t.key === key) || {}).label || "";
+  const tasteDescOf = (key) => (TASTE_LIST.find((t) => t.key === key) || {}).desc || "";
+  function fillTasteSelect(el, mallKey) {
+    const prev = el.value;
+    const list = TASTE_LIST
+      .filter((t) => !t.hidden && (!t.rakutenOnly || mallKey === "rakuten"))
+      .sort((a, b) => (a.order || 99) - (b.order || 99));
+    let html = `<option value="">おまかせ（モール標準）</option>`;
+    list.forEach((t) => { html += `<option value="${t.key}">${t.label}</option>`; });
+    el.innerHTML = html;
+    if ([...el.options].some((o) => o.value === prev)) el.value = prev;
+  }
+
+  // 訴求軸 → 推奨テイスト（サジェスト。強制ではない）
+  const APPEAL_LIST = [
+    { key: "trust", label: "信頼（科学・権威）" },
+    { key: "nature", label: "自然（素材・オーガニック）" },
+    { key: "gift", label: "ギフト（贈答・高級）" },
+    { key: "family", label: "家族（食卓・温かさ）" },
+    { key: "function", label: "機能（スペック・ビジネス）" },
+  ];
+  function fillAppealSelect(el) {
+    el.innerHTML = `<option value="">指定なし</option>` + APPEAL_LIST.map((a) => `<option value="${a.key}">${a.label}</option>`).join("");
+  }
+  const tasteRecommendation = {
+    "supplement|trust": "white_luxury", "supplement|nature": "natural", "supplement|gift": "luxury", "supplement|family": "wamodern",
+    "cosme|trust": "white_luxury", "cosme|nature": "natural", "cosme|gift": "luxury",
+    "food|trust": "wafu_food", "food|nature": "natural", "food|gift": "wafu_food", "food|family": "wamodern",
+    "appliance|function": "premium", "business|function": "premium",
+    "apparel|nature": "natural", "interior|nature": "natural", "daily|nature": "natural", "baby|family": "wamodern",
+  };
+  const appealFallback = { trust: "white_luxury", nature: "natural", gift: "luxury", family: "wamodern", function: "premium" };
+  function recommendTaste(genreKey, appealKey) {
+    if (!appealKey) return "";
+    return tasteRecommendation[`${genreKey}|${appealKey}`] || appealFallback[appealKey] || "";
+  }
+
+  const bannerTaste = document.getElementById("bannerTaste");
+  const freeTaste = document.getElementById("freeTaste");
+  const pageTaste = document.getElementById("pageTaste");
+
+  // タブのモール/ジャンル/訴求軸/テイストを連動させる
+  function wireTasteTab(mallEl, genreEl, appealEl, tasteEl, hintEl) {
+    function optExists(key) { return [...tasteEl.options].some((o) => o.value === key); }
+    function updateHint() {
+      const rec = recommendTaste(genreEl.value, appealEl.value);
+      if (!tasteEl.value && rec && optExists(rec)) tasteEl.value = rec; // おまかせ時は自動適用
+      let html = "";
+      const desc = tasteDescOf(tasteEl.value);
+      if (desc) html += `<span>${desc}</span>`;
+      if (rec && tasteEl.value !== rec && optExists(rec)) {
+        html += ` <a href="#" class="apply-rec" style="font-weight:600;">▶ おすすめ「${tasteLabelOf(rec)}」を適用</a>`;
+      } else if (rec && !optExists(rec)) {
+        html += ` <span>（おすすめ「${tasteLabelOf(rec)}」は楽天選択時に表示）</span>`;
+      }
+      hintEl.innerHTML = html;
+      const a = hintEl.querySelector(".apply-rec");
+      if (a) a.onclick = (e) => { e.preventDefault(); tasteEl.value = rec; updateHint(); };
+    }
+    function refill() { fillTasteSelect(tasteEl, mallEl ? mallEl.value : ""); updateHint(); }
+    if (mallEl) mallEl.addEventListener("change", refill);
+    genreEl.addEventListener("change", updateHint);
+    appealEl.addEventListener("change", updateHint);
+    tasteEl.addEventListener("change", updateHint);
+    refill();
+  }
+
+  const $ = (id) => document.getElementById(id);
+  fillAppealSelect($("bannerAppeal"));
+  fillAppealSelect($("freeAppeal"));
+  fillAppealSelect($("pageAppeal"));
+  wireTasteTab($("bannerMall"), $("bannerGenre"), $("bannerAppeal"), bannerTaste, $("bannerTasteHint"));
+  wireTasteTab($("freeMall"), $("freeGenre"), $("freeAppeal"), freeTaste, $("freeTasteHint"));
+  wireTasteTab($("pageMall"), $("pageGenre"), $("pageAppeal"), pageTaste, $("pageTasteHint"));
+
+  // ===== ターゲット年齢層（5段階） =====
+  const TARGET_LIST = [
+    { key: "10s", label: "10代" },
+    { key: "20s", label: "20代" },
+    { key: "30s", label: "30〜40代" },
+    { key: "40s", label: "40代" },
+    { key: "50s+", label: "50代以上" },
+  ];
+  function fillTargetSelect(el) {
+    let html = `<option value="">指定なし</option>`;
+    TARGET_LIST.forEach((t) => { html += `<option value="${t.key}">${t.label}</option>`; });
+    el.innerHTML = html;
+  }
+  const bannerTarget = document.getElementById("bannerTarget");
+  const freeTarget = document.getElementById("freeTarget");
+  const pageTarget = document.getElementById("pageTarget");
+  fillTargetSelect(bannerTarget);
+  fillTargetSelect(freeTarget);
+  fillTargetSelect(pageTarget);
+  const bannerNotes = document.getElementById("bannerNotes");
+  const freeNotes = document.getElementById("freeNotes");
+  const pageNotes = document.getElementById("pageNotes");
+
+  // ===== 商品ジャンル（10パターン） =====
+  const GENRE_LIST = [
+    { key: "food", label: "食品・グルメ" },
+    { key: "cosme", label: "コスメ・美容" },
+    { key: "supplement", label: "健康食品・サプリ" },
+    { key: "apparel", label: "アパレル・ファッション" },
+    { key: "interior", label: "インテリア・寝具" },
+    { key: "appliance", label: "家電・ガジェット" },
+    { key: "daily", label: "日用品・雑貨" },
+    { key: "baby", label: "ベビー・キッズ・ペット" },
+    { key: "sports", label: "スポーツ・アウトドア" },
+    { key: "business", label: "ビジネス・文具・ギフト" },
+  ];
+  function fillGenreSelect(el) {
+    let html = `<option value="">指定なし</option>`;
+    GENRE_LIST.forEach((g) => { html += `<option value="${g.key}">${g.label}</option>`; });
+    el.innerHTML = html;
+  }
+  const genreLabelOf = (key) => (GENRE_LIST.find((g) => g.key === key) || {}).label || "指定なし";
+  const bannerGenre = document.getElementById("bannerGenre");
+  const freeGenre = document.getElementById("freeGenre");
+  const pageGenre = document.getElementById("pageGenre");
+  fillGenreSelect(bannerGenre);
+  fillGenreSelect(freeGenre);
+  fillGenreSelect(pageGenre);
+
+  // ===== 薬機法分類（NG表現チェック・予防の軸） =====
+  const YAKKI_LIST = [
+    { key: "cosmetics", label: "化粧品" },
+    { key: "quasi_drug", label: "医薬部外品（薬用化粧品）" },
+    { key: "health_food", label: "健康食品・サプリ" },
+    { key: "goods", label: "雑貨" },
+  ];
+  function fillYakkiSelect(el) {
+    let html = `<option value="">対象外（食品・家電等）</option>`;
+    YAKKI_LIST.forEach((y) => { html += `<option value="${y.key}">${y.label}</option>`; });
+    el.innerHTML = html;
+  }
+  const bannerYakki = document.getElementById("bannerYakki");
+  const freeYakki = document.getElementById("freeYakki");
+  const pageYakki = document.getElementById("pageYakki");
+  fillYakkiSelect(bannerYakki);
+  fillYakkiSelect(freeYakki);
+  fillYakkiSelect(pageYakki);
+
+  // ===== 汎用 画像アップローダー（スタイル見本などに使用） =====
+  function setupUploader(dropEl, fileEl, thumbsEl) {
+    const store = [];
+    function render() {
+      thumbsEl.innerHTML = "";
+      store.forEach((img, i) => {
+        const d = document.createElement("div");
+        d.className = "thumb";
+        d.innerHTML = `<img src="${img.url}" /><button title="削除">×</button>`;
+        d.querySelector("button").addEventListener("click", () => { store.splice(i, 1); render(); });
+        thumbsEl.appendChild(d);
+      });
+    }
+    function add(files) {
+      [...files].forEach((f) => {
+        if (!f.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = (e) => { const url = e.target.result; store.push({ data: url.split(",")[1], mimeType: f.type, url }); render(); };
+        reader.readAsDataURL(f);
+      });
+    }
+    dropEl.addEventListener("click", () => fileEl.click());
+    fileEl.addEventListener("change", (e) => { add(e.target.files); fileEl.value = ""; });
+    dropEl.addEventListener("dragover", (e) => { e.preventDefault(); dropEl.style.background = "#eef1f4"; });
+    dropEl.addEventListener("dragleave", () => { dropEl.style.background = ""; });
+    dropEl.addEventListener("drop", (e) => { e.preventDefault(); dropEl.style.background = ""; add(e.dataTransfer.files); });
+    return store;
+  }
+  const bannerStyle = setupUploader(document.getElementById("bannerStyleDrop"), document.getElementById("bannerStyleFile"), document.getElementById("bannerStyleThumbs"));
+  const freeStyle = setupUploader(document.getElementById("freeStyleDrop"), document.getElementById("freeStyleFile"), document.getElementById("freeStyleThumbs"));
+  const pageStyle = setupUploader(document.getElementById("pageStyleDrop"), document.getElementById("pageStyleFile"), document.getElementById("pageStyleThumbs"));
+  const styleImgs = (store) => store.map((x) => ({ data: x.data, mimeType: x.mimeType }));
+
+  // ===== スタイル仕様の解析（確認・編集） =====
+  function setupStyleAnalyze(btn, specEl, statusEl, store) {
+    btn.addEventListener("click", async () => {
+      if (store.length === 0) { statusEl.textContent = "先にスタイル見本画像を追加してください。"; return; }
+      btn.disabled = true; const old = btn.textContent; btn.textContent = "解析中…";
+      statusEl.innerHTML = `<span class="spinner"></span>解析中…`;
+      try {
+        const res = await fetch("/api/analyze-style", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ styleImages: styleImgs(store) }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "解析に失敗しました。");
+        specEl.value = data.spec || "";
+        statusEl.textContent = data.spec ? "解析しました。必要なら編集してください。" : "仕様を取得できませんでした。";
+      } catch (err) {
+        statusEl.innerHTML = `<span class="err">エラー: ${err.message}</span>`;
+      } finally { btn.disabled = false; btn.textContent = old; }
+    });
+  }
+  const bannerStyleSpec = document.getElementById("bannerStyleSpec");
+  const freeStyleSpec = document.getElementById("freeStyleSpec");
+  const pageStyleSpec = document.getElementById("pageStyleSpec");
+  setupStyleAnalyze(document.getElementById("bannerStyleAnalyze"), bannerStyleSpec, document.getElementById("bannerStyleStatus"), bannerStyle);
+  setupStyleAnalyze(document.getElementById("freeStyleAnalyze"), freeStyleSpec, document.getElementById("freeStyleStatus"), freeStyle);
+  setupStyleAnalyze(document.getElementById("pageStyleAnalyze"), pageStyleSpec, document.getElementById("pageStyleStatus"), pageStyle);
+
+  // ============================================================
+  //  セールバナー モード
+  // ============================================================
+  const productsEl = document.getElementById("products");
+  const resultsEl = document.getElementById("results");
+  const statusEl = document.getElementById("status");
+  const genBtn = document.getElementById("genBtn");
+  const zipBtn = document.getElementById("zipBtn");
+  const bannerMall = document.getElementById("bannerMall");
+  let generated = [];
+
+  function productTemplate(idx) {
+    const el = document.createElement("div");
+    el.className = "product";
+    el.innerHTML = `
+      <button class="remove" title="削除">×</button>
+      <h3>商品 ${idx + 1}</h3>
+      <div class="grid">
+        <div class="field full">
+          <label>商品名</label>
+          <input type="text" name="name" placeholder="例: 北海道産 ほたて 1kg" />
+        </div>
+        <div class="field">
+          <label>セール種別</label>
+          <select name="saleType">
+            <option value="">指定なし</option>
+            <option value="ポイントアップ">ポイントアップ</option>
+            <option value="割引">割引</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>倍率 または 割引率</label>
+          <input type="text" name="rate" placeholder="例: 10（倍）/ 30（%OFF）" />
+        </div>
+        <div class="field full">
+          <label>セール期間</label>
+          <input type="text" name="period" placeholder="例: 6/10 0:00 〜 6/15 23:59" />
+        </div>
+      </div>`;
+    el.querySelector(".remove").addEventListener("click", () => { el.remove(); renumber(); });
+    return el;
+  }
+  function renumber() {
+    [...productsEl.children].forEach((el, i) => {
+      el.querySelector("h3").textContent = `商品 ${i + 1}`;
+    });
+  }
+  function addProduct() {
+    productsEl.appendChild(productTemplate(productsEl.children.length));
+  }
+  function collectProducts() {
+    return [...productsEl.children].map((el) => ({
+      name: el.querySelector('[name="name"]').value.trim(),
+      saleType: el.querySelector('[name="saleType"]').value,
+      rate: el.querySelector('[name="rate"]').value.trim(),
+      period: el.querySelector('[name="period"]').value.trim(),
+    }));
+  }
+  function renderResults(results) {
+    resultsEl.innerHTML = "";
+    generated = [];
+    results.forEach((r) => {
+      const card = document.createElement("div");
+      card.className = "result-card";
+      if (!r.ok) {
+        card.innerHTML = `<h3>${r.displayName}</h3><p class="err">生成失敗: ${r.error}</p>`;
+        resultsEl.appendChild(card);
+        return;
+      }
+      generated.push({ name: r.name, banners: r.banners });
+      const h = document.createElement("h3"); h.textContent = r.displayName;
+      const row = document.createElement("div"); row.className = "banner-row";
+      (r.banners || []).forEach((b) => {
+        row.appendChild(makeImageCard(b, {
+          imageKey: "image",
+          tag: `${b.label} ${b.size}`,
+          aspect: b.aspect,
+          filename: `${r.name}_${b.label}_${b.size}.png`,
+          texts: [r.displayName],
+          getTruthSpecs: () => parseTruthSpecs(document.getElementById("bannerSpecs").value),
+          getYakkiClass: () => document.getElementById("bannerYakki").value,
+          getCheckContext: () => ({ genreLabel: genreLabelOf(document.getElementById("bannerGenre").value), productName: r.displayName || "" }),
+        }));
+      });
+      card.appendChild(h); card.appendChild(row);
+      resultsEl.appendChild(card);
+    });
+    zipBtn.style.display = generated.length ? "inline-block" : "none";
+  }
+  async function generate() {
+    const products = collectProducts();
+    if (products.length === 0) { statusEl.textContent = "商品を1件以上追加してください。"; return; }
+    genBtn.disabled = true; zipBtn.style.display = "none"; resultsEl.innerHTML = "";
+    statusEl.innerHTML = `<span class="spinner"></span>${products.length} 商品のバナーを生成中…（1商品につき複数サイズを生成します）`;
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products, mall: bannerMall.value, taste: bannerTaste.value, target: bannerTarget.value, genre: bannerGenre.value, yakkiClass: bannerYakki.value, notes: bannerNotes.value, styleImages: styleImgs(bannerStyle), styleSpec: bannerStyleSpec.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "生成に失敗しました。");
+      renderResults(data.results);
+      const okCount = data.results.filter((r) => r.ok).length;
+      statusEl.textContent = `完了: ${okCount}/${data.results.length} 商品のバナーを生成しました。`;
+    } catch (err) {
+      statusEl.innerHTML = `<span class="err">エラー: ${err.message}</span>`;
+    } finally { genBtn.disabled = false; }
+  }
+  async function downloadZip() {
+    if (generated.length === 0) return;
+    statusEl.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
+    try {
+      const res = await fetch("/api/zip", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: generated }),
+      });
+      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "banners.zip"; a.click();
+      URL.revokeObjectURL(url);
+      statusEl.textContent = "Zip をダウンロードしました。";
+    } catch (err) { statusEl.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
+  }
+  document.getElementById("addBtn").addEventListener("click", addProduct);
+  genBtn.addEventListener("click", generate);
+  zipBtn.addEventListener("click", downloadZip);
+  addProduct();
+
+  // ============================================================
+  //  自由生成 モード
+  // ============================================================
+  const freeItems = document.getElementById("freeItems");
+  const freeMall = document.getElementById("freeMall");
+  const freeAddBtn = document.getElementById("freeAddBtn");
+  const freeGenBtn = document.getElementById("freeGenBtn");
+  const freeZipBtn = document.getElementById("freeZipBtn");
+  const freeStatus = document.getElementById("freeStatus");
+  const freeResults = document.getElementById("freeResults");
+  let freeCards = [];        // { el, refImages: [] }
+  let freeGenerated = [];    // 生成済み画像のbase64（zip用）
+
+  const ASPECT_OPTIONS = `
+    <option value="1:1">1:1（正方形）</option>
+    <option value="4:5">4:5（縦・SNS）</option>
+    <option value="5:4">5:4（やや横）</option>
+    <option value="3:2">3:2</option>
+    <option value="2:3">2:3（縦）</option>
+    <option value="16:9">16:9（横長・LINE等）</option>
+    <option value="9:16">9:16（縦長・ストーリー）</option>
+    <option value="4:3">4:3</option>
+    <option value="3:4">3:4</option>
+    <option value="4:1">4:1（横長バナー・楽天等）</option>
+    <option value="1:4">1:4（縦長バナー）</option>
+    <option value="8:1">8:1（極横長）</option>
+    <option value="21:9">21:9（シネマ）</option>`;
+
+  function renumberFree() {
+    [...freeItems.children].forEach((el, i) => {
+      el.querySelector("h3").textContent = `画像 ${i + 1}`;
+    });
+  }
+
+  function addFreeItem() {
+    const el = document.createElement("div");
+    el.className = "product";
+    el.innerHTML = `
+      <button class="remove" title="削除">×</button>
+      <h3>画像 ${freeItems.children.length + 1}</h3>
+      <div class="field full">
+        <label>指示テキスト（どんな画像を作るか）</label>
+        <textarea class="f-prompt" placeholder="例: 添付の商品写真を使い、白基調の商品ページ用メインビジュアルを作成。上部に『新発売』を配置。"></textarea>
+      </div>
+      <div class="field full" style="margin-top:12px;">
+        <label>参考画像（任意・複数可）— 元画像・参考デザインなど</label>
+        <div class="drop f-drop">ここをクリック、または画像をドラッグ＆ドロップして追加</div>
+        <input type="file" class="f-file" accept="image/*" multiple style="display:none;" />
+        <div class="thumbs f-thumbs"></div>
+      </div>
+      <div class="grid" style="margin-top:12px;">
+        <div class="field">
+          <label>アスペクト比</label>
+          <select class="f-aspect">${ASPECT_OPTIONS}</select>
+        </div>
+      </div>`;
+
+    const card = { el, refImages: [] };
+    const drop = el.querySelector(".f-drop");
+    const file = el.querySelector(".f-file");
+    const thumbs = el.querySelector(".f-thumbs");
+
+    function renderThumbs() {
+      thumbs.innerHTML = "";
+      card.refImages.forEach((img, i) => {
+        const d = document.createElement("div");
+        d.className = "thumb";
+        d.innerHTML = `<img src="${img.url}" /><button title="削除">×</button>`;
+        d.querySelector("button").addEventListener("click", () => {
+          card.refImages.splice(i, 1); renderThumbs();
+        });
+        thumbs.appendChild(d);
+      });
+    }
+    function addFiles(files) {
+      [...files].forEach((f) => {
+        if (!f.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const url = e.target.result;
+          card.refImages.push({ data: url.split(",")[1], mimeType: f.type, url });
+          renderThumbs();
+        };
+        reader.readAsDataURL(f);
+      });
+    }
+    drop.addEventListener("click", () => file.click());
+    file.addEventListener("change", (e) => { addFiles(e.target.files); file.value = ""; });
+    drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.style.background = "#eef1f4"; });
+    drop.addEventListener("dragleave", () => { drop.style.background = ""; });
+    drop.addEventListener("drop", (e) => {
+      e.preventDefault(); drop.style.background = ""; addFiles(e.dataTransfer.files);
+    });
+    el.querySelector(".remove").addEventListener("click", () => {
+      const i = freeCards.indexOf(card);
+      if (i >= 0) freeCards.splice(i, 1);
+      el.remove(); renumberFree();
+    });
+
+    freeItems.appendChild(el);
+    freeCards.push(card);
+  }
+
+  async function freeGenerate() {
+    const items = freeCards.map((c) => ({
+      prompt: c.el.querySelector(".f-prompt").value.trim(),
+      aspect: c.el.querySelector(".f-aspect").value,
+      images: c.refImages.map((x) => ({ data: x.data, mimeType: x.mimeType })),
+    }));
+    if (items.length === 0) { freeStatus.textContent = "項目を1つ以上追加してください。"; return; }
+    if (items.every((it) => !it.prompt && it.images.length === 0)) {
+      freeStatus.textContent = "指示テキストか参考画像を入力してください。"; return;
+    }
+    freeGenBtn.disabled = true; freeZipBtn.style.display = "none";
+    freeResults.innerHTML = ""; freeGenerated = [];
+    freeStatus.innerHTML = `<span class="spinner"></span>${items.length}件の画像を生成中…（件数が多いほど時間がかかります）`;
+    try {
+      const res = await fetch("/api/freeform-batch", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, mall: freeMall.value, taste: freeTaste.value, target: freeTarget.value, genre: freeGenre.value, yakkiClass: freeYakki.value, notes: freeNotes.value, styleImages: styleImgs(freeStyle), styleSpec: freeStyleSpec.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "生成に失敗しました。");
+
+      const ts = Date.now();
+      const results = data.results || [];
+      const card = document.createElement("div");
+      card.className = "result-card";
+      const h = document.createElement("h3"); h.textContent = `生成結果（${results.length}件）`;
+      const row = document.createElement("div"); row.className = "banner-row";
+      results.forEach((r, i) => {
+        if (r.ok) {
+          const slot = { data: r.image };
+          freeGenerated.push(slot);
+          row.appendChild(makeImageCard(slot, {
+            imageKey: "data",
+            tag: `画像 ${i + 1}（${r.aspect}）`,
+            aspect: r.aspect,
+            filename: `generated_${ts}_${i + 1}.png`,
+            texts: [],
+            getTruthSpecs: () => parseTruthSpecs(document.getElementById("freeSpecs").value),
+            getYakkiClass: () => document.getElementById("freeYakki").value,
+            getCheckContext: () => ({ genreLabel: genreLabelOf(document.getElementById("freeGenre").value), productName: "" }),
+          }));
+        } else {
+          const e = document.createElement("div"); e.className = "banner fr";
+          e.innerHTML = `<div class="tag">画像 ${i + 1}</div><div style="padding:14px;"><span class="err">失敗: ${r.error}</span></div>`;
+          row.appendChild(e);
+        }
+      });
+      card.appendChild(h); card.appendChild(row);
+      freeResults.appendChild(card);
+
+      const okCount = freeGenerated.length;
+      freeZipBtn.style.display = okCount > 1 ? "inline-block" : "none";
+      freeStatus.textContent = `完了: ${okCount}/${results.length} 件を生成しました。`;
+    } catch (err) {
+      freeStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`;
+    } finally { freeGenBtn.disabled = false; }
+  }
+
+  async function freeDownloadZip() {
+    if (freeGenerated.length === 0) return;
+    freeStatus.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
+    try {
+      const res = await fetch("/api/zip-free", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: freeGenerated }),
+      });
+      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "generated_images.zip"; a.click();
+      URL.revokeObjectURL(url);
+      freeStatus.textContent = "Zip をダウンロードしました。";
+    } catch (err) { freeStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
+  }
+
+  freeAddBtn.addEventListener("click", addFreeItem);
+  freeGenBtn.addEventListener("click", freeGenerate);
+  freeZipBtn.addEventListener("click", freeDownloadZip);
+  addFreeItem(); // 初期表示で1項目
+
+  // ============================================================
+  //  商品ページ モード
+  // ============================================================
+  const pageMall = document.getElementById("pageMall");
+  const pageCountInfo = document.getElementById("pageCountInfo");
+  const pageFeatures = document.getElementById("pageFeatures");
+  const pageDrop = document.getElementById("pageDrop");
+  const pageFile = document.getElementById("pageFile");
+  const pageThumbs = document.getElementById("pageThumbs");
+  const pageGenBtn = document.getElementById("pageGenBtn");
+  const pageZipBtn = document.getElementById("pageZipBtn");
+  const pageStatus = document.getElementById("pageStatus");
+  const pageResults = document.getElementById("pageResults");
+  let pageImages = [];      // { data, mimeType, url }
+  let pageGenerated = [];    // { data, name }
+
+  // モール別の選べるページ構成テンプレート
+  const PAGE_TEMPLATES = {
+    amazon: [
+      { key: "a1_spec", label: "A1 機能・スペック型（家電・コスメ・サプリ・日用品）", count: 8, desc: "スペック・成分で選ばれる商品。数値とバッジで一撃（Amazon8枚）" },
+      { key: "a2_trust", label: "A2 不安解消・信頼型（高単価・食品・ギフト）", count: 8, desc: "高い・初めてで不安な商品。実績と正直さで信頼を作る（Amazon8枚）" },
+      { key: "a3_lifestyle", label: "A3 ライフスタイル型（アパレル・雑貨・インテリア）", count: 8, desc: "世界観・使用イメージで魅せる商品。実物準拠で（Amazon8枚）" },
+    ],
+    rakuten: [
+      { key: "problem_solving", label: "A 課題解決型（悩みに効く商品全般・迷ったら標準）", count: 17, desc: "「悩みに効く」商品全般。迷ったら標準でコレ" },
+      { key: "trust_first", label: "B 信頼構築型（家電・ガジェット／実績×スペック）", count: 13, desc: "「比較される」商品。実績とスペックで勝つ" },
+      { key: "anxiety_relief", label: "C 不安解消型（高単価・食品・ギフト）", count: 18, desc: "「高い・初めてで不安」な商品。疑問を先回りで潰す" },
+      { key: "feel_continue", label: "D 実感・継続型（コスメ・サプリ）", count: 17, desc: "「効果実感とリピートで売る」商品。成分根拠×実感データ→定期で継続" },
+      { key: "lifestyle_world", label: "E 世界観・ライフスタイル型（アパレル・雑貨・インテリア）", count: 17, desc: "「世界観とシーンで魅せる」商品。UGCと着用イメージで自分ごと化" },
+    ],
+  };
+  const pageTemplate = document.getElementById("pageTemplate");
+  const pageTemplateField = document.getElementById("pageTemplateField");
+
+  function updatePageTemplate() {
+    const tpls = PAGE_TEMPLATES[pageMall.value];
+    if (tpls) {
+      pageTemplate.innerHTML = tpls.map((t) => `<option value="${t.key}">${t.label}（${t.count}枚）</option>`).join("");
+      pageTemplateField.style.display = "";
+    } else {
+      pageTemplate.innerHTML = "";
+      pageTemplateField.style.display = "none";
+    }
+  }
+  function updatePageCount() {
+    const tpls = PAGE_TEMPLATES[pageMall.value];
+    if (tpls) {
+      const t = tpls.find((x) => x.key === pageTemplate.value) || tpls[0];
+      pageCountInfo.value = `${t.count}枚を自動生成${t.desc ? "／" + t.desc : ""}`;
+    } else {
+      const m = MALL_LIST.find((x) => x.key === pageMall.value);
+      pageCountInfo.value = m ? `${m.label}推奨: ${m.pageCount}枚を自動生成` : "モール選択で自動決定";
+    }
+  }
+  pageMall.addEventListener("change", () => { updatePageTemplate(); updatePageCount(); });
+  pageTemplate.addEventListener("change", updatePageCount);
+  updatePageTemplate();
+  updatePageCount();
+
+  function renderPageThumbs() {
+    pageThumbs.innerHTML = "";
+    pageImages.forEach((img, i) => {
+      const d = document.createElement("div");
+      d.className = "thumb";
+      d.innerHTML = `<img src="${img.url}" /><button title="削除">×</button>`;
+      d.querySelector("button").addEventListener("click", () => { pageImages.splice(i, 1); renderPageThumbs(); });
+      pageThumbs.appendChild(d);
+    });
+  }
+  function addPageFiles(files) {
+    [...files].forEach((f) => {
+      if (!f.type.startsWith("image/")) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target.result;
+        pageImages.push({ data: url.split(",")[1], mimeType: f.type, url });
+        renderPageThumbs();
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+  pageDrop.addEventListener("click", () => pageFile.click());
+  pageFile.addEventListener("change", (e) => { addPageFiles(e.target.files); pageFile.value = ""; });
+  pageDrop.addEventListener("dragover", (e) => { e.preventDefault(); pageDrop.style.background = "#eef1f4"; });
+  pageDrop.addEventListener("dragleave", () => { pageDrop.style.background = ""; });
+  pageDrop.addEventListener("drop", (e) => { e.preventDefault(); pageDrop.style.background = ""; addPageFiles(e.dataTransfer.files); });
+
+  async function pageGenerate() {
+    if (!pageMall.value) { pageStatus.textContent = "モールを選択してください。"; return; }
+    if (!pageFeatures.value.trim() && pageImages.length === 0) {
+      pageStatus.textContent = "商品の特徴か商品画像を入力してください。"; return;
+    }
+    pageGenBtn.disabled = true; pageZipBtn.style.display = "none";
+    pageResults.innerHTML = ""; pageGenerated = [];
+    pageStatus.innerHTML = `<span class="spinner"></span>${pageMall.options[pageMall.selectedIndex].text} の商品ページ画像を生成中…（枚数が多いため時間がかかります）`;
+    try {
+      const res = await fetch("/api/product-page", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mall: pageMall.value,
+          template: (PAGE_TEMPLATES[pageMall.value] ? pageTemplate.value : ""),
+          taste: pageTaste.value,
+          target: pageTarget.value,
+          genre: pageGenre.value,
+          yakkiClass: pageYakki.value,
+          notes: pageNotes.value,
+          features: pageFeatures.value.trim(),
+          images: pageImages.map((x) => ({ data: x.data, mimeType: x.mimeType })),
+          styleImages: styleImgs(pageStyle),
+          styleSpec: pageStyleSpec.value,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "生成に失敗しました。");
+
+      const results = data.results || [];
+      const card = document.createElement("div");
+      card.className = "result-card";
+      const h = document.createElement("h3"); h.textContent = `${data.mall} 商品ページ（${results.length}枚）`;
+      const row = document.createElement("div"); row.className = "banner-row";
+      results.forEach((r, i) => {
+        const num = String(i + 1).padStart(2, "0");
+        if (r.ok) {
+          const slot = { data: r.image, name: `${num}_${r.role}`, role: r.role, aspect: r.aspect, tag: `${num}. ${r.role}（${r.aspect}）`, filename: `${num}_${r.role}.png` };
+          pageGenerated.push(slot);
+          row.appendChild(makeImageCard(slot, {
+            imageKey: "data",
+            tag: `${num}. ${r.role}（${r.aspect}）`,
+            aspect: r.aspect,
+            filename: `${num}_${r.role}.png`,
+            texts: [],
+            getTruthSpecs: () => parseTruthSpecs(document.getElementById("pageSpecs").value),
+            getYakkiClass: () => document.getElementById("pageYakki").value,
+            getCheckContext: () => ({ genreLabel: genreLabelOf(document.getElementById("pageGenre").value), productName: (document.getElementById("pageFeatures").value.split(/\n/)[0] || "").trim() }),
+          }));
+        } else {
+          const e = document.createElement("div"); e.className = "banner fr";
+          e.innerHTML = `<div class="tag">${num}. ${r.role}</div><div style="padding:14px;"><span class="err">失敗: ${r.error}</span></div>`;
+          row.appendChild(e);
+        }
+      });
+      card.appendChild(h); card.appendChild(row);
+      pageResults.appendChild(card);
+
+      const okCount = pageGenerated.length;
+      pageZipBtn.style.display = okCount > 0 ? "inline-block" : "none";
+      pageStatus.textContent = `完了: ${okCount}/${results.length} 枚を生成しました。`;
+    } catch (err) {
+      pageStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`;
+    } finally { pageGenBtn.disabled = false; }
+  }
+
+  async function pageDownloadZip() {
+    if (pageGenerated.length === 0) return;
+    pageStatus.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
+    try {
+      const res = await fetch("/api/zip-free", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: pageGenerated }),
+      });
+      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "product_page.zip"; a.click();
+      URL.revokeObjectURL(url);
+      pageStatus.textContent = "Zip をダウンロードしました。";
+    } catch (err) { pageStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
+  }
+
+  pageGenBtn.addEventListener("click", pageGenerate);
+  pageZipBtn.addEventListener("click", pageDownloadZip);
+
+  // ===== プロジェクト保存・読込（制作途中ページ／商品ページタブ） =====
+  const PAGE_SETTING_IDS = ["pageMall", "pageTemplate", "pageTaste", "pageTarget", "pageGenre", "pageYakki", "pageAppeal", "pageNotes", "pageFeatures", "pageSpecs"];
+  function collectPageSettings() {
+    const s = {};
+    PAGE_SETTING_IDS.forEach((id) => { const el = document.getElementById(id); if (el) s[id] = el.value; });
+    return s;
+  }
+  function applyPageSettings(s) {
+    s = s || {};
+    const mallEl = document.getElementById("pageMall");
+    if (s.pageMall !== undefined) mallEl.value = s.pageMall;
+    mallEl.dispatchEvent(new Event("change")); // テンプレ・テイスト・枚数を再構築
+    PAGE_SETTING_IDS.forEach((id) => { if (id === "pageMall") return; if (s[id] !== undefined) { const el = document.getElementById(id); if (el) el.value = s[id]; } });
+    document.getElementById("pageTemplate").dispatchEvent(new Event("change"));
+    document.getElementById("pageGenre").dispatchEvent(new Event("change"));
+  }
+  function renderRestoredPage(items) {
+    pageResults.innerHTML = ""; pageGenerated = [];
+    const card = document.createElement("div"); card.className = "result-card";
+    const h = document.createElement("h3"); h.textContent = `保存ページを復元（${items.length}枚）`;
+    const row = document.createElement("div"); row.className = "banner-row";
+    items.forEach((it, i) => {
+      const num = String(i + 1).padStart(2, "0");
+      const slot = { data: it.image, name: (it.filename || num + ".png").replace(/\.png$/, ""), role: it.tag, aspect: it.aspect, tag: it.tag, filename: it.filename };
+      pageGenerated.push(slot);
+      row.appendChild(makeImageCard(slot, {
+        imageKey: "data",
+        tag: it.tag || num,
+        aspect: it.aspect || "",
+        filename: it.filename || num + ".png",
+        texts: [],
+        getTruthSpecs: () => parseTruthSpecs(document.getElementById("pageSpecs").value),
+        getYakkiClass: () => document.getElementById("pageYakki").value,
+        getCheckContext: () => ({ genreLabel: genreLabelOf(document.getElementById("pageGenre").value), productName: (document.getElementById("pageFeatures").value.split(/\n/)[0] || "").trim() }),
+      }));
+    });
+    card.appendChild(h); card.appendChild(row); pageResults.appendChild(card);
+    pageZipBtn.style.display = pageGenerated.length ? "inline-block" : "none";
+  }
+  async function pageSaveProject() {
+    if (pageGenerated.length === 0) { pageStatus.textContent = "保存する画像がありません（先に生成してください）。"; return; }
+    const name = (document.getElementById("pageProjName").value || "").trim() || "無題";
+    const items = pageGenerated.map((g, i) => ({ image: g.data, tag: g.tag || g.role || "", aspect: g.aspect || "", filename: g.filename || String(i + 1).padStart(2, "0") + ".png" }));
+    pageStatus.innerHTML = `<span class="spinner"></span>保存中…`;
+    try {
+      const res = await fetch("/api/projects/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, tab: "page", settings: collectPageSettings(), items }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "保存に失敗しました。");
+      pageStatus.textContent = `保存しました（${data.count}枚 / 約${data.sizeMB}MB）。「保存ページを開く」から再編集できます。`;
+    } catch (err) { pageStatus.innerHTML = `<span class="err">保存エラー: ${err.message}</span>`; }
+  }
+  const projModal = document.getElementById("projModal");
+  async function openProjModal() {
+    projModal.style.display = "block";
+    const listEl = document.getElementById("projList");
+    listEl.innerHTML = `<span class="muted"><span class="spinner"></span>読込中…</span>`;
+    try {
+      const res = await fetch("/api/projects");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "一覧取得に失敗しました。");
+      document.getElementById("projDirInfo").textContent = "保存先フォルダ: " + (data.dir || "");
+      if (!data.projects.length) { listEl.innerHTML = `<p class="muted">保存されたページはまだありません。</p>`; return; }
+      listEl.innerHTML = "";
+      data.projects.forEach((p) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;";
+        const when = (() => { try { return new Date(p.savedAt).toLocaleString(); } catch (_) { return ""; } })();
+        row.innerHTML = `<div><b>${p.name}</b><br><span class="muted" style="font-size:12px;">${p.tab} ・ ${p.count}枚 ・ 約${p.sizeMB}MB ・ ${when}</span></div>`;
+        const btns = document.createElement("div");
+        const open = document.createElement("button"); open.className = "action primary"; open.style.cssText = "padding:6px 12px;margin-right:6px;"; open.textContent = "開く";
+        open.onclick = () => loadProject(p.id);
+        const del = document.createElement("button"); del.className = "action ghost"; del.style.cssText = "padding:6px 12px;"; del.textContent = "削除";
+        del.onclick = async () => { if (!confirm("このプロジェクトを削除しますか？")) return; await fetch("/api/projects/" + encodeURIComponent(p.id), { method: "DELETE" }); openProjModal(); };
+        btns.appendChild(open); btns.appendChild(del); row.appendChild(btns);
+        listEl.appendChild(row);
+      });
+    } catch (err) { listEl.innerHTML = `<span class="err">${err.message}</span>`; }
+  }
+  async function loadProject(id) {
+    try {
+      const res = await fetch("/api/projects/" + encodeURIComponent(id));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "読込に失敗しました。");
+      document.querySelector('.tab[data-tab="page"]').click();
+      applyPageSettings(data.settings);
+      renderRestoredPage(data.items || []);
+      projModal.style.display = "none";
+      pageStatus.textContent = `「${data.name}」を読み込みました。各画像の修正・SVG/pptx書き出し・チェックが使えます。`;
+    } catch (err) { alert("読込エラー: " + err.message); }
+  }
+  document.getElementById("pageSaveBtn").addEventListener("click", pageSaveProject);
+  document.getElementById("pageOpenBtn").addEventListener("click", openProjModal);
+  document.getElementById("projClose").addEventListener("click", () => { projModal.style.display = "none"; });
+  projModal.addEventListener("click", (e) => { if (e.target === projModal) projModal.style.display = "none"; });
+</script>
+</body>
+</html>
