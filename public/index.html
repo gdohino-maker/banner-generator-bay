@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+　<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -619,7 +619,18 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
+  // クライアントサイド ZIP ヘルパー
+  async function clientZip(files, zipName) {
+    const zip = new JSZip();
+    files.forEach(({ name, data }) => zip.file(name, data, { base64: true }));
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = zipName; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
   // ===== タブ切替 =====
   document.querySelectorAll(".tab").forEach((t) => {
     t.addEventListener("click", () => {
@@ -1151,16 +1162,17 @@
     if (generated.length === 0) return;
     statusEl.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
     try {
-      const res = await fetch("/api/zip", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: generated }),
+      const files = [];
+      generated.forEach((item) => {
+        const name = (item.name || "item").replace(/[^\w　-鿿゠-ヿ぀-ゟ]+/g, "_");
+        (item.banners || []).forEach((b) => {
+          if (b?.image) {
+            const label = (b.label || b.key || "banner").replace(/[^\w　-鿿゠-ヿ぀-ゟ]+/g, "");
+            files.push({ name: `${name}_${label}_${b.size || ""}.png`, data: b.image });
+          }
+        });
       });
-      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "banners.zip"; a.click();
-      URL.revokeObjectURL(url);
+      await clientZip(files, "banners.zip");
       statusEl.textContent = "Zip をダウンロードしました。";
     } catch (err) { statusEl.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
   }
@@ -1334,16 +1346,12 @@
     if (freeGenerated.length === 0) return;
     freeStatus.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
     try {
-      const res = await fetch("/api/zip-free", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: freeGenerated }),
+      const files = freeGenerated.filter(x => x?.data).map((x, i) => {
+        const prefix = String(i + 1).padStart(2, "0");
+        const label = x.name ? `_${String(x.name).replace(/[^\w　-鿿゠-ヿ぀-ゟ]+/g, "")}` : "";
+        return { name: `${prefix}${label || "_generated"}.png`, data: x.data };
       });
-      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "generated_images.zip"; a.click();
-      URL.revokeObjectURL(url);
+      await clientZip(files, "generated_images.zip");
       freeStatus.textContent = "Zip をダウンロードしました。";
     } catch (err) { freeStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
   }
@@ -1509,16 +1517,12 @@
     if (pageGenerated.length === 0) return;
     pageStatus.innerHTML = `<span class="spinner"></span>Zip を作成中…`;
     try {
-      const res = await fetch("/api/zip-free", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: pageGenerated }),
+      const files = pageGenerated.filter(x => x?.data).map((x, i) => {
+        const prefix = String(i + 1).padStart(2, "0");
+        const label = (x.filename || x.name || "").replace(/\.png$/, "").replace(/[^\w　-鿿゠-ヿ぀-ゟ]+/g, "_");
+        return { name: `${prefix}_${label || "page"}.png`, data: x.data };
       });
-      if (!res.ok) throw new Error("Zip 作成に失敗しました。");
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "product_page.zip"; a.click();
-      URL.revokeObjectURL(url);
+      await clientZip(files, "product_page.zip");
       pageStatus.textContent = "Zip をダウンロードしました。";
     } catch (err) { pageStatus.innerHTML = `<span class="err">エラー: ${err.message}</span>`; }
   }
@@ -1526,7 +1530,7 @@
   pageGenBtn.addEventListener("click", pageGenerate);
   pageZipBtn.addEventListener("click", pageDownloadZip);
 
-  // ===== プロジェクト保存・読込（制作途中ページ／商品ページタブ） =====
+  // ===== プロジェクト保存・読込（localStorage ベース） =====
   const PAGE_SETTING_IDS = ["pageMall", "pageTemplate", "pageTaste", "pageTarget", "pageGenre", "pageYakki", "pageAppeal", "pageNotes", "pageFeatures", "pageSpecs"];
   function collectPageSettings() {
     const s = {};
@@ -1537,7 +1541,7 @@
     s = s || {};
     const mallEl = document.getElementById("pageMall");
     if (s.pageMall !== undefined) mallEl.value = s.pageMall;
-    mallEl.dispatchEvent(new Event("change")); // テンプレ・テイスト・枚数を再構築
+    mallEl.dispatchEvent(new Event("change"));
     PAGE_SETTING_IDS.forEach((id) => { if (id === "pageMall") return; if (s[id] !== undefined) { const el = document.getElementById(id); if (el) el.value = s[id]; } });
     document.getElementById("pageTemplate").dispatchEvent(new Event("change"));
     document.getElementById("pageGenre").dispatchEvent(new Event("change"));
@@ -1565,50 +1569,63 @@
     card.appendChild(h); card.appendChild(row); pageResults.appendChild(card);
     pageZipBtn.style.display = pageGenerated.length ? "inline-block" : "none";
   }
+
+  // localStorage ヘルパー
+  const LS_INDEX = "banner_projs_idx";
+  function lsIndex() { try { return JSON.parse(localStorage.getItem(LS_INDEX) || "[]"); } catch(_) { return []; } }
+  function lsSaveIndex(arr) { try { localStorage.setItem(LS_INDEX, JSON.stringify(arr)); } catch(_) {} }
+
   async function pageSaveProject() {
     if (pageGenerated.length === 0) { pageStatus.textContent = "保存する画像がありません（先に生成してください）。"; return; }
     const name = (document.getElementById("pageProjName").value || "").trim() || "無題";
-    const items = pageGenerated.map((g, i) => ({ image: g.data, tag: g.tag || g.role || "", aspect: g.aspect || "", filename: g.filename || String(i + 1).padStart(2, "0") + ".png" }));
     pageStatus.innerHTML = `<span class="spinner"></span>保存中…`;
     try {
-      const res = await fetch("/api/projects/save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, tab: "page", settings: collectPageSettings(), items }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "保存に失敗しました。");
-      pageStatus.textContent = `保存しました（${data.count}枚 / 約${data.sizeMB}MB）。「保存ページを開く」から再編集できます。`;
-    } catch (err) { pageStatus.innerHTML = `<span class="err">保存エラー: ${err.message}</span>`; }
+      const id = "proj_" + Date.now();
+      const items = pageGenerated.map((g, i) => ({ image: g.data, tag: g.tag || g.role || "", aspect: g.aspect || "", filename: g.filename || String(i + 1).padStart(2, "0") + ".png" }));
+      const proj = { id, name, tab: "page", settings: collectPageSettings(), savedAt: new Date().toISOString(), items };
+      localStorage.setItem("banner_proj_" + id, JSON.stringify(proj));
+      const idx = lsIndex().filter(x => x.id !== id);
+      idx.unshift({ id, name, tab: "page", savedAt: proj.savedAt, count: items.length });
+      lsSaveIndex(idx);
+      pageStatus.textContent = `「${name}」を保存しました（${items.length}枚）。「保存ページを開く」から再編集できます。`;
+    } catch (err) {
+      pageStatus.innerHTML = `<span class="err">保存エラー: ${err.message}（画像が多すぎてストレージ容量を超えた可能性があります）</span>`;
+    }
   }
+
   const projModal = document.getElementById("projModal");
-  async function openProjModal() {
+  function openProjModal() {
     projModal.style.display = "block";
     const listEl = document.getElementById("projList");
-    listEl.innerHTML = `<span class="muted"><span class="spinner"></span>読込中…</span>`;
-    try {
-      const res = await fetch("/api/projects");
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "一覧取得に失敗しました。");
-      document.getElementById("projDirInfo").textContent = "保存先フォルダ: " + (data.dir || "");
-      if (!data.projects.length) { listEl.innerHTML = `<p class="muted">保存されたページはまだありません。</p>`; return; }
-      listEl.innerHTML = "";
-      data.projects.forEach((p) => {
-        const row = document.createElement("div");
-        row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;";
-        const when = (() => { try { return new Date(p.savedAt).toLocaleString(); } catch (_) { return ""; } })();
-        row.innerHTML = `<div><b>${p.name}</b><br><span class="muted" style="font-size:12px;">${p.tab} ・ ${p.count}枚 ・ 約${p.sizeMB}MB ・ ${when}</span></div>`;
-        const btns = document.createElement("div");
-        const open = document.createElement("button"); open.className = "action primary"; open.style.cssText = "padding:6px 12px;margin-right:6px;"; open.textContent = "開く";
-        open.onclick = () => loadProject(p.id);
-        const del = document.createElement("button"); del.className = "action ghost"; del.style.cssText = "padding:6px 12px;"; del.textContent = "削除";
-        del.onclick = async () => { if (!confirm("このプロジェクトを削除しますか？")) return; await fetch("/api/projects/" + encodeURIComponent(p.id), { method: "DELETE" }); openProjModal(); };
-        btns.appendChild(open); btns.appendChild(del); row.appendChild(btns);
-        listEl.appendChild(row);
-      });
-    } catch (err) { listEl.innerHTML = `<span class="err">${err.message}</span>`; }
+    const idx = lsIndex();
+    document.getElementById("projDirInfo").textContent = "保存先: ブラウザのローカルストレージ（このデバイス・ブラウザのみ）";
+    if (!idx.length) { listEl.innerHTML = `<p class="muted">保存されたページはまだありません。</p>`; return; }
+    listEl.innerHTML = "";
+    idx.forEach((p) => {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:8px;";
+      const when = (() => { try { return new Date(p.savedAt).toLocaleString(); } catch (_) { return ""; } })();
+      row.innerHTML = `<div><b>${p.name}</b><br><span class="muted" style="font-size:12px;">${p.tab} ・ ${p.count}枚 ・ ${when}</span></div>`;
+      const btns = document.createElement("div");
+      const open = document.createElement("button"); open.className = "action primary"; open.style.cssText = "padding:6px 12px;margin-right:6px;"; open.textContent = "開く";
+      open.onclick = () => loadProject(p.id);
+      const del = document.createElement("button"); del.className = "action ghost"; del.style.cssText = "padding:6px 12px;"; del.textContent = "削除";
+      del.onclick = () => {
+        if (!confirm("このプロジェクトを削除しますか？")) return;
+        localStorage.removeItem("banner_proj_" + p.id);
+        lsSaveIndex(lsIndex().filter(x => x.id !== p.id));
+        openProjModal();
+      };
+      btns.appendChild(open); btns.appendChild(del); row.appendChild(btns);
+      listEl.appendChild(row);
+    });
   }
-  async function loadProject(id) {
+
+  function loadProject(id) {
     try {
-      const res = await fetch("/api/projects/" + encodeURIComponent(id));
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "読込に失敗しました。");
+      const raw = localStorage.getItem("banner_proj_" + id);
+      if (!raw) throw new Error("プロジェクトが見つかりません。");
+      const data = JSON.parse(raw);
       document.querySelector('.tab[data-tab="page"]').click();
       applyPageSettings(data.settings);
       renderRestoredPage(data.items || []);
@@ -1616,6 +1633,7 @@
       pageStatus.textContent = `「${data.name}」を読み込みました。各画像の修正・SVG/pptx書き出し・チェックが使えます。`;
     } catch (err) { alert("読込エラー: " + err.message); }
   }
+
   document.getElementById("pageSaveBtn").addEventListener("click", pageSaveProject);
   document.getElementById("pageOpenBtn").addEventListener("click", openProjModal);
   document.getElementById("projClose").addEventListener("click", () => { projModal.style.display = "none"; });
